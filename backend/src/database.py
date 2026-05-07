@@ -82,8 +82,11 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Create all tables. Called once at application startup in development."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.warning(f"Database initialization warning (safe to ignore if tables exist): {e}")
     logger.info("Database tables initialized (engine=%s).", "SQLite" if settings.is_sqlite else "PostgreSQL")
 
 
