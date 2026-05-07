@@ -1,0 +1,128 @@
+version: "3.9"
+
+# ============================================================
+# ZAMIN X — Docker Compose (Development)
+# Usage: docker-compose up -d
+# ============================================================
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: zaminx_postgres
+    environment:
+      POSTGRES_DB: zaminx
+      POSTGRES_USER: zaminx
+      POSTGRES_PASSWORD: zaminx_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zaminx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: zaminx_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── FastAPI Backend ─────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zaminx_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_USER: zaminx
+      DB_PASSWORD: zaminx_dev_password
+      DB_NAME: zaminx
+      REDIS_HOST: redis
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Celery Worker ───────────────────────────────────────────
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zaminx_celery_worker
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_USER: zaminx
+      DB_PASSWORD: zaminx_dev_password
+      DB_NAME: zaminx
+      REDIS_HOST: redis
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./models:/app/models
+    command: celery -A src.celery_tasks worker --loglevel=info --concurrency=4
+
+  # ── Celery Beat (Scheduler) ─────────────────────────────────
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zaminx_celery_beat
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      - redis
+    command: celery -A src.celery_tasks beat --loglevel=info
+
+  # ── Flower (Celery Monitoring) ──────────────────────────────
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zaminx_flower
+    ports:
+      - "5555:5555"
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      - redis
+    command: celery -A src.celery_tasks flower --port=5555
+
+volumes:
+  postgres_data:
+  redis_data:

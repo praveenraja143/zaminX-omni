@@ -1,0 +1,167 @@
+# ============================================================
+# ZAMIN X — Land Litigation Intelligence Platform
+# config/config.yaml
+# Central configuration for all services
+# ============================================================
+
+app:
+  name: "Zamin X"
+  version: "1.0.0"
+  environment: "development"   # development | staging | production
+  debug: true
+  log_level: "INFO"
+
+# ----- API Server -----
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  reload: true
+  secret_key: "${SECRET_KEY}"          # injected from env
+  jwt_algorithm: "HS256"
+  jwt_expire_minutes: 1440             # 24 hours
+  rate_limit_per_minute: 60
+  rate_limit_b2b_per_minute: 500
+
+# ----- PostgreSQL -----
+database:
+  host: "${DB_HOST:-localhost}"
+  port: 5432
+  name: "zaminx"
+  user: "${DB_USER:-zaminx}"
+  password: "${DB_PASSWORD}"
+  pool_size: 20
+  max_overflow: 10
+  echo: false
+
+# ----- Redis -----
+redis:
+  host: "${REDIS_HOST:-localhost}"
+  port: 6379
+  db: 0
+  search_result_ttl_seconds: 21600    # 6 hours
+  session_ttl_seconds: 86400
+
+# ----- Celery -----
+celery:
+  broker_url: "redis://${REDIS_HOST:-localhost}:6379/1"
+  result_backend: "redis://${REDIS_HOST:-localhost}:6379/2"
+  ecourts_scrape_interval_hours: 6
+  blockchain_anchor_interval_hours: 24
+
+# ----- AI Services -----
+ai:
+  nlp:
+    model_name: "google/muril-base-cased"
+    model_path: "models/muril_finetuned"
+    max_input_tokens: 512
+    max_summary_tokens: 128
+    inference_timeout_seconds: 5
+    confidence_threshold: 0.6
+    fallback_to_extractive: true
+    device: "cpu"                       # cpu | cuda
+  ocr:
+    tesseract_lang: "tam+hin+eng"
+    confidence_threshold: 60
+    max_image_size_mb: 10
+    preprocessing: true
+  risk_scorer:
+    model_path: "models/xgboost_risk_scorer.pkl"
+    feature_version: "v1"
+    score_ttl_hours: 24
+  whisper:
+    model_size: "small"                 # tiny | base | small | medium
+    language: "ta"                      # Tamil default; auto-detect fallback
+  faiss:
+    index_path: "models/faiss_index.bin"
+    embedding_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+# ----- Blockchain -----
+blockchain:
+  hyperledger:
+    enabled: false                      # set true in production
+    network_config: "config/fabric_network.yaml"
+    channel_name: "zaminx-channel"
+    chaincode_name: "land-record"
+    org_msp: "ZaminXMSP"
+  polygon:
+    enabled: false
+    rpc_url: "${POLYGON_RPC_URL}"
+    wallet_address: "${POLYGON_WALLET}"
+    private_key: "${POLYGON_PRIVATE_KEY}"
+    land_record_contract: "${LAND_RECORD_CONTRACT}"
+    ownership_contract: "${OWNERSHIP_CONTRACT}"
+    anchor_contract: "${DAILY_ANCHOR_CONTRACT}"
+
+# ----- Data Sources -----
+data_sources:
+  ecourts:
+    base_url: "https://ecourts.gov.in"
+    njdg_url: "https://njdg.ecourts.gov.in"
+    indian_kanoon_url: "https://indiankanoon.org"
+    request_delay_seconds: 2           # polite scraping
+    retry_attempts: 3
+    timeout_seconds: 30
+  bhoomi:
+    api_url: "${BHOOMI_API_URL}"        # TN land records (when available)
+    api_key: "${BHOOMI_API_KEY}"
+  dilrmp:
+    api_url: "${DILRMP_API_URL}"
+    api_key: "${DILRMP_API_KEY}"
+
+# ----- Notifications -----
+notifications:
+  twilio:
+    account_sid: "${TWILIO_ACCOUNT_SID}"
+    auth_token: "${TWILIO_AUTH_TOKEN}"
+    from_number: "${TWILIO_PHONE}"
+    sms_cost_inr: 0.50
+  whatsapp:
+    api_url: "https://graph.facebook.com/v18.0"
+    phone_number_id: "${WHATSAPP_PHONE_ID}"
+    access_token: "${WHATSAPP_ACCESS_TOKEN}"
+  firebase:
+    credentials_path: "config/firebase_service_account.json"
+
+# ----- Storage -----
+storage:
+  s3:
+    bucket: "zaminx-ocr-documents"
+    region: "${AWS_REGION:-ap-south-1}"
+    access_key: "${AWS_ACCESS_KEY_ID}"
+    secret_key: "${AWS_SECRET_ACCESS_KEY}"
+    glacier_transition_days: 90
+
+# ----- Feature Flags -----
+features:
+  blockchain_verification: false       # Phase 3
+  voice_input: false                   # Phase 4
+  map_visualization: false             # Phase 4
+  b2b_bulk_api: true                   # Phase 2+
+  offline_mode: true
+  sms_alerts: true
+  whatsapp_alerts: true
+
+# ----- Supported States -----
+supported_states:
+  - code: "TN"
+    name: "Tamil Nadu"
+    districts: 38
+    phase: 1
+  - code: "KA"
+    name: "Karnataka"
+    districts: 31
+    phase: 3
+  - code: "AP"
+    name: "Andhra Pradesh"
+    districts: 26
+    phase: 3
+
+# ----- Languages -----
+languages:
+  default: "ta"
+  supported: ["ta", "hi", "en"]
+  names:
+    ta: "Tamil"
+    hi: "Hindi"
+    en: "English"
