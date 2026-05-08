@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # API
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = Field(default=8000, alias="PORT")
     secret_key: str = Field(default="dev-secret-change-in-prod", alias="SECRET_KEY")
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440

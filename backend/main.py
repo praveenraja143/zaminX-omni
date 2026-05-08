@@ -20,7 +20,9 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     sp = subparsers.add_parser("server", help="Start FastAPI server")
-    sp.add_argument("--port", type=int, default=8000)
+    import os
+    env_port = int(os.environ.get("PORT", 8000))
+    sp.add_argument("--port", type=int, default=env_port)
     sp.add_argument("--reload", action="store_true")
     sp.set_defaults(func=cmd_server)
 
