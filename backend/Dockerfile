@@ -60,4 +60,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Use the shell form of CMD to allow environment variable expansion ($PORT)
+CMD uvicorn api.app:app --host 0.0.0.0 --port $PORT
