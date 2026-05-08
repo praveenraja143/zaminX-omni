@@ -23,10 +23,24 @@ export default function Search() {
       .catch(() => setDistricts(['Erode', 'Coimbatore', 'Salem', 'Namakkal', 'Tiruppur']))
   }, [])
 
+  // Mock data fallback for when API is unreachable
+  const MOCK_DATA = {
+    "Erode": { taluks: ["Erode", "Gobichettipalayam", "Bhavani", "Sathyamangalam", "Perundurai", "Anthiyur"], villages: { "Erode": ["Erode Town", "Karungalpalayam", "Veerappanchatram", "Chithode", "Modakkurichi"], "Gobichettipalayam": ["Gobichettipalayam", "Bhavanisagar", "Kasipalayam", "Odasaliyur", "Kadambur"], "Bhavani": ["Bhavani Town", "Kumarapalayam", "Kavundapalayam", "Salangapalayam"], "Sathyamangalam": ["Sathyamangalam", "Thalavadi", "Bannari", "Hasanur"], "Perundurai": ["Perundurai", "Vijayamangalam", "Ingur", "Ellapalayam"], "Anthiyur": ["Anthiyur", "Ammapettai", "Bargur", "Odhimalai"] } },
+    "Coimbatore": { taluks: ["Coimbatore North", "Coimbatore South", "Pollachi", "Mettupalayam", "Sulur", "Valparai"], villages: { "Coimbatore North": ["Coimbatore", "Peelamedu", "Singanallur", "Ganapathypuram", "Thudiyalur"], "Coimbatore South": ["R.S. Puram", "Ramanathapuram", "Nanjundapuram", "Vadavalli"], "Pollachi": ["Pollachi", "Anaimalai", "Negamam", "Zamin Uthukuli", "Kinathukadavu"], "Mettupalayam": ["Mettupalayam", "Annur", "Karamadai", "Sirumugai"], "Sulur": ["Sulur", "Irugur", "Perur", "Madukkarai"], "Valparai": ["Valparai", "Aliyar Nagar", "Sholayar"] } },
+    "Salem": { taluks: ["Salem", "Mettur", "Omalur", "Attur", "Yercaud", "Sankagiri"], villages: { "Salem": ["Salem Town", "Suramangalam", "Hasthampatti", "Kondalampatti", "Ayothiyapattinam"], "Mettur": ["Mettur", "Mecheri", "Kolathur", "Nangavalli"], "Omalur": ["Omalur", "Thalaivasal", "Kadayampatti", "Valapadi"], "Attur": ["Attur", "Gangavalli", "Pethanaickenpalayam", "Narasingapuram"], "Yercaud": ["Yercaud", "Shevaroy Hills", "Manjakuttai"], "Sankagiri": ["Sankagiri", "Veerapandi", "Edappadi", "Magudanchavadi"] } },
+    "Namakkal": { taluks: ["Namakkal", "Rasipuram", "Tiruchengode", "Paramathi-Velur", "Kolli Hills"], villages: { "Namakkal": ["Namakkal Town", "Mohanur", "Erumapalayam", "Puduchatram"], "Rasipuram": ["Rasipuram", "Sendamangalam", "Namagiripettai", "Mangalapuram"], "Tiruchengode": ["Tiruchengode", "Kumarapalayam", "Pallipalayam", "Sankari"], "Paramathi-Velur": ["Paramathi", "Velur", "Jedarpalayam", "Kabilarmalai"], "Kolli Hills": ["Semmedu", "Ariyur Nagar", "Valavanthi Nagar"] } },
+    "Tiruppur": { taluks: ["Tiruppur North", "Tiruppur South", "Avinashi", "Palladam", "Dharapuram", "Kangayam", "Udumalaipettai"], villages: { "Tiruppur North": ["Tiruppur", "Angeripalayam", "Mangalam", "Nallur"], "Tiruppur South": ["Avinashi Road", "Perumanallur", "Uthukuli", "Vellakoil"], "Avinashi": ["Avinashi", "Chennimalai", "Gudimangalam"], "Palladam": ["Palladam", "Pongalur", "Madathukulam"], "Dharapuram": ["Dharapuram", "Mulanur", "Kunnathur"], "Kangayam": ["Kangayam", "Vellakovil", "Nathakadaiyur"], "Udumalaipettai": ["Udumalaipettai", "Madathukulam", "Gudalur"] } }
+  };
+
   useEffect(() => {
     if (form.district) {
-      fetch(`${API_BASE_URL}/api/land/taluks/${form.district}`).then(r => r.json()).then(d => setTaluks(d.taluks || []))
-        .catch(() => setTaluks([]))
+      fetch(`${API_BASE_URL}/api/land/taluks/${form.district}`)
+        .then(r => r.json())
+        .then(d => setTaluks(d.taluks || []))
+        .catch(() => {
+          console.warn("API failed, using fallback taluks");
+          setTaluks(MOCK_DATA[form.district]?.taluks || []);
+        })
       setForm(f => ({ ...f, taluk: '', village: '' }))
       setVillages([])
     }
@@ -34,8 +48,13 @@ export default function Search() {
 
   useEffect(() => {
     if (form.district && form.taluk) {
-      fetch(`${API_BASE_URL}/api/land/villages/${form.district}/${form.taluk}`).then(r => r.json()).then(d => setVillages(d.villages || []))
-        .catch(() => setVillages([]))
+      fetch(`${API_BASE_URL}/api/land/villages/${form.district}/${form.taluk}`)
+        .then(r => r.json())
+        .then(d => setVillages(d.villages || []))
+        .catch(() => {
+          console.warn("API failed, using fallback villages");
+          setVillages(MOCK_DATA[form.district]?.villages[form.taluk] || []);
+        })
       setForm(f => ({ ...f, village: '' }))
     }
   }, [form.taluk])
