@@ -1,5 +1,5 @@
 import { useApp } from '../App.jsx'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function RiskGauge({ score, level }) {
   const r = 85, circ = 2 * Math.PI * r
