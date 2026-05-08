@@ -54,11 +54,6 @@ USER zaminx
 # Create directories
 RUN mkdir -p models data/raw data/processed reports
 
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
-    CMD curl -f http://localhost:8000/api/health || exit 1
-
-# Use the shell form of CMD to allow environment variable expansion ($PORT)
-CMD uvicorn api.app:app --host 0.0.0.0 --port $PORT
+# Render automatically detects the port. 
+# We'll use our main.py server which is already configured to handle the $PORT environment variable.
+CMD ["python", "main.py", "server"]
