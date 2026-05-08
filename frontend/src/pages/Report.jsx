@@ -63,11 +63,9 @@ function CaseCard({ c, t }) {
         {c.source && <><dt>Source</dt><dd style={{ textTransform: 'capitalize' }}>{c.source.replace('_', ' ')}</dd></>}
       </dl>
       {c.ai_summary && (
-        <div className="report-card chargesheet-card">
-          <h3>📖 {t('chargesheet')}</h3>
-          <div className="ai-summary-content">
-            {displaySummary}
-          </div>
+        <div className="case-summary-box" style={{ marginTop: 12, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--gold-400)' }}>🤖 {t('ai_summary')}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.6 }}>{c.ai_summary}</div>
         </div>
       )}
       {!c.ai_summary && c.headline && (
@@ -87,8 +85,8 @@ export default function Report() {
   if (!searchResult) return null
 
   // Use translated content if available, otherwise fallback
-  const displaySummary = searchResult.i18n_summaries?.[lang] || searchResult.ai_summary
-  const displayRiskReason = searchResult.i18n_risk_summaries?.[lang] || searchResult.risk_assessment?.risk_summary
+  const displaySummary = searchResult?.i18n_summaries?.[lang] || searchResult?.ai_summary;
+  const displayRiskReason = searchResult?.i18n_risk_summaries?.[lang] || searchResult?.risk_assessment?.risk_summary;
 
   const data = searchResult
   const risk = data.risk_assessment || {}
