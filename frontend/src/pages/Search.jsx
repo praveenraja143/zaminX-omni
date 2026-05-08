@@ -99,9 +99,6 @@ export default function Search() {
       )}
 
       <div className="search-form-container fade-in">
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 48 }}>🔍</span>
-        </div>
         <h2>{t('search_button')}</h2>
         <p className="subtitle">Enter land details to check for court cases and litigation risk</p>
 
@@ -110,14 +107,14 @@ export default function Search() {
         <form onSubmit={handleSearch} className="glass-card" style={{ padding: 32 }}>
           <div className="form-grid">
             <div className="form-group full-width">
-              <label>👤 {t('owner_name')}</label>
+              <label>{t('owner_name')}</label>
               <input type="text" className="form-input"
                 placeholder="e.g. Murugesan s/o Ramu"
                 value={form.owner_name} onChange={e => update('owner_name', e.target.value)} />
             </div>
 
             <div className="form-group">
-              <label>📍 {t('district')} *</label>
+              <label>{t('district')} *</label>
               <select className="form-select" required value={form.district}
                 onChange={e => update('district', e.target.value)}>
                 <option value="">{t('select_district')}</option>
@@ -126,7 +123,7 @@ export default function Search() {
             </div>
 
             <div className="form-group">
-              <label>🏘️ {t('taluk')}</label>
+              <label>{t('taluk')}</label>
               <select className="form-select" value={form.taluk}
                 onChange={e => update('taluk', e.target.value)} disabled={!form.district}>
                 <option value="">{t('select_taluk')}</option>
@@ -135,7 +132,7 @@ export default function Search() {
             </div>
 
             <div className="form-group">
-              <label>🏡 {t('village')}</label>
+              <label>{t('village')}</label>
               <select className="form-select" value={form.village}
                 onChange={e => update('village', e.target.value)} disabled={!form.taluk}>
                 <option value="">{t('select_village')}</option>
@@ -144,14 +141,14 @@ export default function Search() {
             </div>
 
             <div className="form-group">
-              <label>📋 {t('survey_number')}</label>
+              <label>{t('survey_number')}</label>
               <input type="text" className="form-input"
                 placeholder="e.g. 123/4A"
                 value={form.survey_number} onChange={e => update('survey_number', e.target.value)} />
             </div>
 
             <div className="form-group full-width">
-              <label>📱 {t('mobile_number')}</label>
+              <label>{t('mobile_number')} <span style={{fontSize: '0.85em', opacity: 0.7}}>(Optional)</span></label>
               <input type="tel" className="form-input"
                 placeholder="9876543210"
                 value={form.mobile_number} onChange={e => update('mobile_number', e.target.value)} />
