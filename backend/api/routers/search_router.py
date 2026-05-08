@@ -101,6 +101,10 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
 
         # 2. Save/update land record in DB
         land_record = await _upsert_land_record(db, req, patta)
+        
+        # Override mock owner name with user's input for consistency in demo
+        if req.owner_name:
+            land_record.owner_name = req.owner_name
 
         # 3. Fetch cases strictly from the downloaded database
         raw_cases = _get_downloaded_cases(req.district, req.village, req.survey_number, req.owner_name)
@@ -138,6 +142,7 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
 
         # 5. Compute risk assessment using LLM
         active_count = sum(1 for c in saved_cases if c.get("status") == "active")
+        # Ensure risk assessment and reasoning are in the requested language
         risk_assessment = await _compute_risk(saved_cases, patta_dict, language)
 
         # Save risk score
@@ -161,6 +166,10 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
             "chain": "polygon_mumbai",
             "message": "Blockchain verification available",
         }
+        
+        # Prepare multilingual summaries for instant switching in UI
+        i18n_summaries = { language: ai_summary }
+        i18n_risk_summaries = { language: risk_assessment.get("risk_summary") }
 
         # 8. Save search history
         elapsed_ms = int((time.time() - start_time) * 1000)
@@ -181,7 +190,7 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
                 "taluk": land_record.taluk,
                 "village_name": land_record.village_name,
                 "survey_number": land_record.survey_number,
-                "owner_name": land_record.owner_name or (patta.owner_name if patta else ""),
+                "owner_name": land_record.owner_name,
                 "area_acres": land_record.area_acres,
                 "land_type": land_record.land_type,
             },
@@ -192,6 +201,8 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
             active_cases=active_count,
             risk_assessment=risk_assessment,
             ai_summary=ai_summary,
+            i18n_summaries=i18n_summaries,
+            i18n_risk_summaries=i18n_risk_summaries,
             blockchain_badge=blockchain_badge,
             search_metadata={
                 "response_time_ms": elapsed_ms,

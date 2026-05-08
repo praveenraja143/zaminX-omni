@@ -63,9 +63,11 @@ function CaseCard({ c, t }) {
         {c.source && <><dt>Source</dt><dd style={{ textTransform: 'capitalize' }}>{c.source.replace('_', ' ')}</dd></>}
       </dl>
       {c.ai_summary && (
-        <div className="case-summary">
-          <div className="label">🤖 {t('ai_summary')}</div>
-          {c.ai_summary}
+        <div className="report-card chargesheet-card">
+          <h3>📖 {t('chargesheet')}</h3>
+          <div className="ai-summary-content">
+            {displaySummary}
+          </div>
         </div>
       )}
       {!c.ai_summary && c.headline && (
@@ -79,9 +81,16 @@ function CaseCard({ c, t }) {
 }
 
 export default function Report() {
-  const { t, searchResult: data } = useApp()
-  if (!data) return null
+  const { searchResult, t, lang } = useApp()
+  const navigate = useNavigate()
 
+  if (!searchResult) return null
+
+  // Use translated content if available, otherwise fallback
+  const displaySummary = searchResult.i18n_summaries?.[lang] || searchResult.ai_summary
+  const displayRiskReason = searchResult.i18n_risk_summaries?.[lang] || searchResult.risk_assessment?.risk_summary
+
+  const data = searchResult
   const risk = data.risk_assessment || {}
   const riskLevel = risk.risk_level || 'low'
   const riskScore = risk.risk_score || 0
@@ -117,7 +126,7 @@ export default function Report() {
                 🤖 {t('chargesheet')}
               </h3>
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-secondary)' }}>
-                {data.ai_summary}
+                {displaySummary}
               </p>
             </div>
           )}
@@ -134,8 +143,8 @@ export default function Report() {
                 ))}
               </ul>
               {risk.recommendation && (
-                <div style={{ marginTop: 16, padding: 12, background: 'rgba(251,191,36,0.05)', borderRadius: 'var(--radius-sm)', fontSize: 14, color: 'var(--gold-400)' }}>
-                  💡 <strong>Recommendation:</strong> {risk.recommendation}
+                <div className="recommendation-box">
+                  <p>💡 <strong>Recommendation:</strong> {displayRiskReason}</p>
                 </div>
               )}
             </div>
