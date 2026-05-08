@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
+import { API_BASE_URL } from '../api_config.js'
 
 export default function Search() {
   const { t, lang, setSearchResult } = useApp()
@@ -18,13 +19,13 @@ export default function Search() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/land/districts').then(r => r.json()).then(d => setDistricts(d.districts || []))
+    fetch(`${API_BASE_URL}/api/land/districts`).then(r => r.json()).then(d => setDistricts(d.districts || []))
       .catch(() => setDistricts(['Erode', 'Coimbatore', 'Salem', 'Namakkal', 'Tiruppur']))
   }, [])
 
   useEffect(() => {
     if (form.district) {
-      fetch(`/api/land/taluks/${form.district}`).then(r => r.json()).then(d => setTaluks(d.taluks || []))
+      fetch(`${API_BASE_URL}/api/land/taluks/${form.district}`).then(r => r.json()).then(d => setTaluks(d.taluks || []))
         .catch(() => setTaluks([]))
       setForm(f => ({ ...f, taluk: '', village: '' }))
       setVillages([])
@@ -33,7 +34,7 @@ export default function Search() {
 
   useEffect(() => {
     if (form.district && form.taluk) {
-      fetch(`/api/land/villages/${form.district}/${form.taluk}`).then(r => r.json()).then(d => setVillages(d.villages || []))
+      fetch(`${API_BASE_URL}/api/land/villages/${form.district}/${form.taluk}`).then(r => r.json()).then(d => setVillages(d.villages || []))
         .catch(() => setVillages([]))
       setForm(f => ({ ...f, village: '' }))
     }
@@ -50,7 +51,7 @@ export default function Search() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/search', {
+      const res = await fetch(`${API_BASE_URL}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

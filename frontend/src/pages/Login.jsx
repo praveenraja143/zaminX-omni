@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
+import { API_BASE_URL } from '../api_config.js'
 
-const API = '/api/auth'
+const API = `${API_BASE_URL}/api/auth`
 
 export default function Login() {
   const { t, login } = useApp()
