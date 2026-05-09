@@ -66,11 +66,31 @@ async def timing_middleware(request: Request, call_next):
 
 # ── Import and register routers ───────────────────────────────────────────────
 from api.routers import search_router, auth_router, land_router, i18n_router
+from fastapi import UploadFile, File
+from src.ocr_engine import ocr_engine
 
 app.include_router(auth_router.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(search_router.router, prefix="/api", tags=["Land Search"])
 app.include_router(land_router.router, prefix="/api/land", tags=["Land Records"])
 app.include_router(i18n_router.router, prefix="/api/i18n", tags=["Translations"])
+
+# ── OCR Endpoint (Directly registered) ───────────────────────────────────────
+@app.post("/api/ocr/extract", tags=["OCR"])
+async def ocr_extract(file: UploadFile = File(...)):
+    """
+    Upload a patta/chitta image → Extract text using Tesseract OCR.
+    Supports JPEG, PNG. Returns extracted text.
+    """
+    content = await file.read()
+    extracted_text = ocr_engine.extract_text(content)
+    if not extracted_text:
+        return {"success": False, "text": "", "message": "OCR failed or Tesseract not installed."}
+    return {
+        "success": True,
+        "text": extracted_text,
+        "char_count": len(extracted_text),
+        "message": "Text extracted successfully via Tesseract OCR",
+    }
 
 
 @app.get("/", tags=["Health"])
