@@ -8,6 +8,26 @@ import sys
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+# Graceful Celery init
+celery_app = None
+try:
+    from celery import Celery
+    celery_app = Celery(
+        "zaminx_tasks",
+        broker="redis://localhost:6379/0",
+        backend="redis://localhost:6379/0"
+    )
+    celery_app.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="Asia/Kolkata",
+        enable_utc=True,
+    )
+    logger.info("Celery: READY")
+except Exception as e:
+    logger.warning(f"Celery: DISABLED ({e})")
+
 
 def cmd_server(args):
     import uvicorn

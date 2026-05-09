@@ -5,8 +5,11 @@
  * Automatically switches between local development and production Render URL.
  */
 
-// If VITE_API_URL is set in .env or Render dashboard, use it.
-// Otherwise, default to your deployed backend URL.
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zaminx-omni.onrender.com';
+// In development (local), use localhost:8000
+// In production (Render), VITE_API_URL will be set to the backend URL
+const isDev = import.meta.env.DEV;
 
-logger: console.log(`API Base URL: ${API_BASE_URL}`);
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (isDev ? 'http://localhost:8000' : 'https://zaminx-omni.onrender.com');
+
+console.log(`[Zamin X] API Base URL: ${API_BASE_URL}`);

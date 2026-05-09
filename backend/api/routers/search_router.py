@@ -21,6 +21,9 @@ from src.models import LandRecord, CourtCase, FraudScore, SearchHistory
 from src.court_scrapers.indian_kanoon import indian_kanoon_client
 from src.court_scrapers.tn_land_records import tn_land_fetcher
 from src.llm_engine import llm_engine
+from src.advanced_engine import advanced_engine
+from src.blockchain_client import blockchain_client
+from src.notification_service import notification_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,6 +49,8 @@ class SearchResponse(BaseModel):
     active_cases: int = 0
     risk_assessment: Optional[dict] = None
     ai_summary: Optional[str] = None
+    i18n_summaries: Optional[dict] = None
+    i18n_risk_summaries: Optional[dict] = None
     blockchain_badge: Optional[dict] = None
     search_metadata: Optional[dict] = None
 
@@ -56,8 +61,16 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
     Main land litigation search endpoint.
     Searches Indian Kanoon for court cases and provides AI risk assessment.
     """
-    start_time = time.time()
     language = req.language if req.language in settings.supported_languages else "en"
+
+    # 0. Check Redis Cache
+    cache_key = f"search:{req.district}:{req.village}:{req.survey_number}:{language}"
+    cached_res = advanced_engine.get_cache(cache_key)
+    if cached_res:
+        logger.info("Serving from Redis cache.")
+        return SearchResponse(**cached_res)
+
+    start_time = time.time()
 
     logger.info(
         "Search: owner=%s district=%s taluk=%s village=%s survey=%s lang=%s",
@@ -109,6 +122,12 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
         # 3. Fetch cases strictly from the downloaded database
         raw_cases = _get_downloaded_cases(req.district, req.village, req.survey_number, req.owner_name)
 
+        # 3b. Perform Semantic Search if many cases found
+        if len(raw_cases) > 5:
+            case_texts = [c.get("headline", "") for c in raw_cases]
+            top_indices = advanced_engine.semantic_search(f"dispute in {req.village}", case_texts)
+            raw_cases = [raw_cases[i] for i in top_indices]
+
         # 4. Save cases to DB and get AI summaries
         saved_cases = []
         for case_data in raw_cases:
@@ -159,13 +178,17 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
             except Exception as e:
                 logger.warning("Overall AI summary failed: %s", e)
 
-        # 7. Blockchain badge (mock for now)
-        blockchain_badge = {
-            "verified": False,
-            "status": "pending_verification",
-            "chain": "polygon_mumbai",
-            "message": "Blockchain verification available",
-        }
+        # 7. Blockchain anchoring (Polygon)
+        report_text = f"{req.district}-{req.survey_number}-{ai_summary}"
+        blockchain_badge = blockchain_client.verify_report_hash(report_text)
+
+        # 8. Send Notification if High Risk
+        if risk_assessment.get("risk_score", 0) > 70:
+            notification_service.send_alert(
+                req.mobile_number or "User", 
+                f"Zamin X Alert: High Risk (Score {risk_assessment['risk_score']}) detected for Survey {req.survey_number} in {req.village}.",
+                channel="whatsapp"
+            )
         
         # Prepare multilingual summaries for instant switching in UI
         i18n_summaries = { language: ai_summary }
@@ -182,7 +205,7 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
 
         await db.commit()
 
-        return SearchResponse(
+        response = SearchResponse(
             success=True,
             land_record={
                 "survey_id": land_record.survey_id,
@@ -211,6 +234,10 @@ async def search_land(req: SearchRequest, db: AsyncSession = Depends(get_db)):
                 "searched_at": datetime.utcnow().isoformat(),
             },
         )
+        
+        # Save to cache
+        advanced_engine.set_cache(cache_key, response.model_dump())
+        return response
 
     except Exception as e:
         logger.exception("Search failed: %s", e)
@@ -283,11 +310,19 @@ async def _compute_risk(cases, land_info, language) -> dict:
         }
 
     # Try LLM-based risk
+    res = None
     if llm_engine.is_available:
         try:
-            result = await llm_engine.assess_risk_reasoning(cases, land_info or {}, language)
-            if result and isinstance(result.get("risk_score"), (int, float)):
-                return result
+            res = await llm_engine.assess_risk_reasoning(cases, land_info or {}, language)
+            if res and isinstance(res.get("risk_score"), (int, float)):
+                # Use AI for reasoning and logic
+                # Also use XGBoost for a numerical sanity check
+                ml_features = [float(len(cases)), float(sum(1 for c in cases if c.get('status') == 'active')), 0.5, 0.2]
+                ml_score = advanced_engine.compute_ml_risk_score(ml_features)
+    
+                # Merge ML score with LLM reasoning
+                res["risk_score"] = int((res.get("risk_score", 0) + ml_score) / 2)
+                return res
         except Exception as e:
             logger.warning("LLM risk assessment failed: %s", e)
 

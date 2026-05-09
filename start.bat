@@ -1,16 +1,23 @@
 @echo off
-echo =======================================
-echo     Starting Zamin X Platform...
-echo =======================================
+echo ===========================================
+echo       Zamin X - Land Intelligence
+echo ===========================================
+echo.
 
-echo Starting Backend API Server (with auto-reload)...
-start "Zamin X Backend" cmd /k "cd backend && python main.py server --reload"
+echo [1/3] Installing dependencies...
+cd backend
+pip install -r requirements.txt --quiet 2>nul
+cd ..
 
-echo Starting Frontend React App...
-start "Zamin X Frontend" cmd /k "cd frontend && npm run dev"
+echo [2/3] Starting Backend API...
+start "Zamin X Backend" cmd /k "cd /d %~dp0backend & python main.py server --reload"
+
+echo [3/3] Starting Frontend...
+start "Zamin X Frontend" cmd /k "cd /d %~dp0frontend & npm run dev"
 
 echo.
-echo Both servers are starting up!
-echo The Frontend will be available at http://localhost:5173
-echo The Backend API will be available at http://localhost:8000
-echo.
+echo ===========================================
+echo   Backend:  http://localhost:8000
+echo   Frontend: http://localhost:5173
+echo ===========================================
+pause
